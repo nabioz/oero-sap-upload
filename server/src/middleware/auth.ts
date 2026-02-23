@@ -29,7 +29,7 @@ export const authMiddleware = createMiddleware<{
         const emailLower = payload.email.toLowerCase();
         const isAllowed = ALLOWED_EMAILS.length === 0 ||
             ALLOWED_EMAILS.some(e => e.toLowerCase() === emailLower);
-
+            
         if (!isAllowed) {
             return c.json({ error: 'Email not authorized' }, 403);
         }
