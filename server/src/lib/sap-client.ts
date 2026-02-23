@@ -11,7 +11,7 @@ function getAuth(): string {
     return Buffer.from(`${SAP_USER}:${SAP_PASSWORD}`).toString('base64');
 }
 
-export async function sendToSAPEndpoint(payload: any, endpointUrl: string) {
+export async function sendToSAPSalesEndpoint(payload: any, endpointUrl: string) {
     const auth = getAuth();
 
     console.log(`Sending payload to SAP (${endpointUrl}):`, JSON.stringify(payload, null, 2));
@@ -64,7 +64,7 @@ export function getSalesEndpointUrl(): string {
     return SAP_SALES_URL;
 }
 
-export async function sendToSAP(payload: any) {
+export async function sendToSAPJournalEndpoint(payload: any) {
     const auth = getAuth();
 
     console.log("Sending payload to SAP:", JSON.stringify(payload, null, 2));

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Next.js 16 (App Router) application for SAP integration. Users upload Turkish XML files through a drag-and-drop UI, which are parsed, mapped to SAP format, and posted to SAP via Cloud Platform Integration (CPI) REST API.
+Vite + React (frontend) and Hono (backend) application for SAP integration. Users upload Turkish XML files through a drag-and-drop UI, which are parsed, mapped to SAP format, and posted to SAP via Cloud Platform Integration (CPI) REST API.
 
 Supported document types:
 - **Tahsilat (Collection/Receipt)** — `<TAHSILATLAR>` root → SAP FI Journal Entry endpoint
@@ -14,11 +14,12 @@ Supported document types:
 
 ## Commands
 
-- `npm run dev` — Start development server (localhost:3000)
-- `npm run build` — Production build
-- `npm run start` — Start production server
+- `npm run dev` — Start both client (Vite, localhost:5173) and server (Hono, localhost:3001) concurrently
+- `npm run dev:client` — Start Vite dev server only
+- `npm run dev:server` — Start Hono dev server only (with file watching)
+- `npm run build` — Build client for production
 - `npm run lint` — Run ESLint
-- `npx tsx scripts/verify-mapping.ts` — Run mapping verification script locally (currently Tahsilat only — validates XML parsing and SAP JSON output without calling the API)
+- `npm run verify-mapping` — Run mapping verification script locally (currently Tahsilat only — validates XML parsing and SAP JSON output without calling the API)
 
 ## Architecture
 
@@ -26,23 +27,37 @@ Supported document types:
 
 ```
 FileUploader (client, drag-drop .xml) → UploadDashboard (client, state/queue management)
-  → processXmlFile() (Server Action in app/actions/process-xml.ts)
-    → parseXML() (app/lib/xml-parser.ts, uses fast-xml-parser)
-    → Route by root element:
-      TAHSILATLAR → mapTahsilatXmlToBulkRequest() → sendToSAP() (JournalEntry endpoint)
-      FATURALAR   → mapFaturaXmlToSalesRequests() → sendToSAPEndpoint() (CreateSalesOperation endpoint)
+  → fetch POST /api/process-xml (client/src/lib/api.ts)
+    → Hono route handler (server/src/routes/process-xml.ts)
+      → parseXML() (server/src/lib/xml-parser.ts, uses fast-xml-parser)
+      → Route by root element:
+        TAHSILATLAR → mapTahsilatXmlToBulkRequest() → sendToSAP() (JournalEntry endpoint)
+        FATURALAR   → mapFaturaXmlToSalesRequests() → sendToSAPEndpoint() (CreateSalesOperation endpoint)
 ```
+
+In development, Vite's dev server proxies `/api/*` requests to the Hono server at port 3001.
 
 ### Key Modules
 
-- **`app/actions/process-xml.ts`** — Server Action orchestrator. Receives FormData, parses XML, detects root element (TAHSILATLAR or FATURALAR), routes to appropriate mapper and SAP endpoint.
-- **`app/lib/mappers/tahsilat-mapper.ts`** — Maps Tahsilat XML fields to SAP JournalEntryBulkCreateRequest JSON.
-- **`app/lib/mappers/sales-mapper.ts`** — Maps Fatura (FATURALAR) XML to SAP CreateSalesOperation JSON. Each BASLIK (invoice header + DETAY line items) becomes a separate API request. Sales (OR) and Returns (CBRE) produce different JSON shapes with different field names (see SAP Mapping Details). Hardcoded SAP defaults: SalesOrganization `3610`, DistributionChannel `10`, OrganizationDivision `0`, ProductionPlant `3610`, StorageLocation `361A`, Currency `TRY`.
-- **`app/lib/sap-client.ts`** — SAP CPI HTTP client. Base64-encoded Basic Auth. `sendToSAP()` for JournalEntry endpoint, `sendToSAPEndpoint()` for any custom URL (used by sales flow).
-- **`app/lib/xml-parser.ts`** — Thin wrapper around fast-xml-parser.
-- **`app/components/FileUploader.tsx`** — Client component. Drag-and-drop file input for .xml files with Framer Motion animations.
-- **`app/components/UploadDashboard.tsx`** — Client component. Manages file queue state, processes files sequentially, displays per-file status (idle → parsing → sending → success/error).
-- **`app/types.ts`** — Shared types: `ProcessingStatus`, `UploadedFile`.
+**Server (`server/src/`):**
+- **`index.ts`** — Hono app entry point. Loads `.env` via dotenv, sets up CORS + logger middleware, mounts routes, serves on port 3001.
+- **`routes/process-xml.ts`** — POST `/api/process-xml` route. Accepts multipart/form-data, parses XML, detects root element (TAHSILATLAR or FATURALAR), routes to appropriate mapper and SAP endpoint. Returns JSON `ProcessResult`.
+- **`lib/sap-client.ts`** — SAP CPI HTTP client. Base64-encoded Basic Auth. `sendToSAP()` for JournalEntry endpoint, `sendToSAPEndpoint()` for any custom URL (used by sales flow).
+- **`lib/xml-parser.ts`** — Thin wrapper around fast-xml-parser.
+- **`lib/mappers/tahsilat-mapper.ts`** — Maps Tahsilat XML fields to SAP JournalEntryBulkCreateRequest JSON.
+- **`lib/mappers/sales-mapper.ts`** — Maps Fatura (FATURALAR) XML to SAP CreateSalesOperation JSON. Each BASLIK (invoice header + DETAY line items) becomes a separate API request. Sales (OR) and Returns (CBRE) produce different JSON shapes with different field names (see SAP Mapping Details). Hardcoded SAP defaults: SalesOrganization `3610`, DistributionChannel `10`, OrganizationDivision `0`, ProductionPlant `3610`, StorageLocation `361A`, Currency `TRY`.
+
+**Client (`client/src/`):**
+- **`App.tsx`** — Root React component with gradient background.
+- **`main.tsx`** — React entry point, mounts App to DOM.
+- **`lib/api.ts`** — Fetch wrapper for `/api/process-xml`. Same function signature as the old Server Action for minimal component changes.
+- **`lib/utils.ts`** — `cn()` helper (clsx + tailwind-merge).
+- **`components/FileUploader.tsx`** — Drag-and-drop file input for .xml files with Framer Motion animations.
+- **`components/UploadDashboard.tsx`** — Manages file queue state, processes files sequentially, displays per-file status (idle → parsing → sending → success/error).
+- **`types.ts`** — Client types: `ProcessingStatus`, `UploadedFile`.
+
+**Shared (`shared/`):**
+- **`types.ts`** — `ProcessResult` type used by both client and server.
 
 ### SAP Mapping Details
 
@@ -75,7 +90,7 @@ Shared hardcoded values: SalesOrganization `3610`, DistributionChannel `10`, Org
 
 ## Environment Variables
 
-Required in `.env.local`:
+Required in `.env`:
 - `SAP_API_URL` — SAP CPI JournalEntry endpoint URL (for Tahsilat)
 - `SAP_SALES_API_URL` — SAP CPI CreateSalesOperation endpoint URL (for Fatura)
 - `SAP_USER` / `SAP_PASSWORD` — SAP Basic Auth credentials (shared across endpoints)
@@ -85,13 +100,15 @@ Required in `.env.local`:
 
 ## Tech Stack
 
-- **Next.js 16.1.3** with App Router, React 19, TypeScript (strict mode)
-- **fast-xml-parser** for XML parsing
-- **Tailwind CSS 4** with custom CSS variables and utility classes (`glass-panel`, `premium-gradient-text`, `premium-button` defined in `globals.css`)
+- **Vite 6** with React 19, TypeScript (strict mode) — frontend SPA
+- **Hono 4** on `@hono/node-server` — lightweight backend API server
+- **fast-xml-parser** for XML parsing (server-side)
+- **Tailwind CSS 4** with `@tailwindcss/vite` plugin, custom CSS variables and utility classes (`glass-panel`, `premium-gradient-text`, `premium-button` defined in `globals.css`)
 - **Framer Motion** for animations, **Lucide React** for icons
-- **clsx + tailwind-merge** via `cn()` helper in `app/lib/utils.ts`
+- **clsx + tailwind-merge** via `cn()` helper in `client/src/lib/utils.ts`
+- **dotenv** for server-side environment variable loading
+- **concurrently** for running client + server dev servers together
 - No database — stateless file processing
-- No API routes — all backend logic via Server Actions
 
 ## Test Data
 

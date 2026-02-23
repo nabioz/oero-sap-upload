@@ -1,14 +1,12 @@
-'use client';
-
 import React, { useState } from 'react';
 import { FileUploader } from './FileUploader';
 import { UploadedFile } from '../types';
 import { FileText, CheckCircle2, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { processXmlFile } from '../actions/process-xml';
+import { processXmlFile } from '../lib/api';
 
-export function UploadDashboard() {
+export function UploadDashboard({ token }: { token: string }) {
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -42,7 +40,7 @@ export function UploadDashboard() {
             ));
 
             try {
-                const result = await processXmlFile(formData);
+                const result = await processXmlFile(formData, token);
 
                 setFiles(prev => prev.map(f =>
                     f.id === fileItem.id ? {
@@ -53,6 +51,10 @@ export function UploadDashboard() {
                     } : f
                 ));
             } catch (e: any) {
+                if (e.message === 'AUTH_EXPIRED') {
+                    window.location.reload();
+                    return;
+                }
                 setFiles(prev => prev.map(f =>
                     f.id === fileItem.id ? {
                         ...f,

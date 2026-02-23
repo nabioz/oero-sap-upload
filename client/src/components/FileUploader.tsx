@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useCallback, useState } from 'react';
 import { UploadCloud, File as FileIcon, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

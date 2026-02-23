@@ -1,19 +1,15 @@
-'use server';
-
+import { Hono } from 'hono';
 import { parseXML } from '../lib/xml-parser';
 import { mapTahsilatXmlToBulkRequest } from '../lib/mappers/tahsilat-mapper';
 import { mapFaturaXmlToSalesRequests } from '../lib/mappers/sales-mapper';
-import { sendToSAP, sendToSAPEndpoint, getSalesEndpointUrl } from '../lib/sap-client';
+import { sendToSAPJournalEndpoint, sendToSAPSalesEndpoint, getSalesEndpointUrl } from '../lib/sap-client';
+import type { ProcessResult } from '../../../shared/types';
 
-export type ProcessResult = {
-    success: boolean;
-    message?: string;
-    data?: any;
-};
+const processXmlRoute = new Hono();
 
 async function processTahsilat(parsedXml: any): Promise<ProcessResult> {
     const sapPayload = mapTahsilatXmlToBulkRequest(parsedXml);
-    const sapResult = await sendToSAP(sapPayload);
+    const sapResult = await sendToSAPJournalEndpoint(sapPayload);
 
     if (!sapResult.success) {
         return { success: false, message: sapResult.error, data: sapResult.details };
@@ -29,7 +25,7 @@ async function processFatura(parsedXml: any): Promise<ProcessResult> {
 
     for (const request of salesRequests) {
         const ref = request.Header.HeaderType.PurchaseOrderByCustomer;
-        const sapResult = await sendToSAPEndpoint(request, endpointUrl);
+        const sapResult = await sendToSAPSalesEndpoint(request, endpointUrl);
         results.push({
             ref,
             success: sapResult.success,
@@ -58,31 +54,40 @@ async function processFatura(parsedXml: any): Promise<ProcessResult> {
     };
 }
 
-export async function processXmlFile(formData: FormData): Promise<ProcessResult> {
+processXmlRoute.post('/', async (c) => {
     try {
-        const file = formData.get('file') as File;
-        if (!file) {
-            return { success: false, message: "No file provided" };
+        const body = await c.req.parseBody();
+        const file = body['file'];
+
+        if (!file || !(file instanceof File)) {
+            return c.json({ success: false, message: 'No file provided' } satisfies ProcessResult, 400);
         }
 
         const text = await file.text();
         const parsedXml = parseXML(text);
 
         if (parsedXml?.TAHSILATLAR) {
-            return await processTahsilat(parsedXml);
+            const result = await processTahsilat(parsedXml);
+            return c.json(result, result.success ? 200 : 422);
         }
 
         if (parsedXml?.FATURALAR) {
-            return await processFatura(parsedXml);
+            const result = await processFatura(parsedXml);
+            return c.json(result, result.success ? 200 : 422);
         }
 
-        return {
+        return c.json({
             success: false,
             message: "Invalid XML format: Expected TAHSILATLAR or FATURALAR root element",
-        };
+        } satisfies ProcessResult, 400);
 
     } catch (error: any) {
         console.error("Processing Error:", error);
-        return { success: false, message: `Processing failed: ${error.message}` };
+        return c.json({
+            success: false,
+            message: `Processing failed: ${error.message}`,
+        } satisfies ProcessResult, 500);
     }
-}
+});
+
+export { processXmlRoute };
