@@ -1,41 +1,59 @@
 // Maps FATURALAR (Invoice) XML to SAP CreateSalesOperation JSON format.
 // Handles Sales Invoices (BYTTUR=0), Service Invoices (BYTTUR=5), and Returns (BYTTUR=8).
+// Sales uses OR order type; Returns use CBRE with return-specific field names.
 
 const SALES_ORG = "3610";
 const DIST_CHANNEL = "10";
 const ORG_DIVISION = "0";
 const CURRENCY = "TRY";
-const RETURN_ORDER_REASON = "102";
-const RETURN_REJECTION_REASON = "102";
+const PRODUCTION_PLANT = "3610";
+const STORAGE_LOCATION = "361A";
+
+// Sales (OR) constants
+const SALES_ORDER_TYPE = "OR";
+const SALES_ITEM_CATEGORY = "NORM";
+const CONDITION_TYPE = "PMP0";
+
+// Return (CBRE) constants
+const RETURN_ORDER_TYPE = "CBRE";
+const RETURN_REASON = "102";
 
 // BYTTUR=8 indicates a return (iade) document
 const RETURN_BYTTUR = 8;
 
-function calculateDiscount(detay: any): string {
-    let total = 0;
-    for (let i = 1; i <= 8; i++) {
-        const val = parseFloat(detay[`DBLISKTUTAR${i}`] || "0");
-        if (!isNaN(val)) total += val;
-    }
-    return total.toFixed(2);
-}
-
-function mapDetayToItem(detay: any, headerRef: string, isReturn: boolean): any {
+function mapDetayToSalesItem(detay: any, headerRef: string): any {
     const itemNo = (parseInt(detay.LNGKALEMSIRA || "1", 10) * 10).toString();
 
     return {
         PurchaseOrderByCustomer: headerRef,
-        ItemNo: itemNo,
-        HigherLevelItemNumber: "",
-        RejectionReason: isReturn ? RETURN_REJECTION_REASON : "",
+        SalesOrderItem: itemNo,
+        SalesOrderItemCategory: SALES_ITEM_CATEGORY,
+        SalesOrderItemText: "",
         Material: detay.TXTURUNKOD || "",
         BomMaterial: "",
         RequestedQuantity: detay.DBLMIKTAR || "",
         RequestedQuantityUnit: detay.TXTURUNBIRIM || "",
+        ProductionPlant: PRODUCTION_PLANT,
+        StorageLocation: STORAGE_LOCATION,
+        ConditionType: CONDITION_TYPE,
+        ConditionRateValue: detay.DBLBIRIMFIYAT || "",
+        ConditionCurrency: CURRENCY,
+        ConditionQuantity: "1",
+        ConditionQuantityUnit: detay.TXTURUNBIRIM || "",
+    };
+}
+
+function mapDetayToReturnItem(detay: any): any {
+    const itemNo = (parseInt(detay.LNGKALEMSIRA || "1", 10) * 10).toString();
+
+    return {
+        CustomerReturnItem: itemNo,
+        Material: detay.TXTURUNKOD || "",
+        RequestedQuantity: detay.DBLMIKTAR || "",
+        RequestedQuantityUnit: detay.TXTURUNBIRIM || "",
         TransactionCurrency: CURRENCY,
-        UnitPrice: detay.DBLBIRIMFIYAT || "",
-        AmountBasedDiscount: calculateDiscount(detay),
-        PartnerFunction: "",
+        ProductionPlant: PRODUCTION_PLANT,
+        ReturnReason: RETURN_REASON,
     };
 }
 
@@ -50,11 +68,35 @@ function mapBaslikToSalesRequest(baslik: any): any {
             ? [baslik.DETAY]
             : [];
 
-    const items = detayList.map((d: any) => mapDetayToItem(d, headerRef, isReturn));
+    if (isReturn) {
+        const items = detayList.map((d: any) => mapDetayToReturnItem(d));
+
+        return {
+            Header: {
+                HeaderType: {
+                    CustomerReturnType: RETURN_ORDER_TYPE,
+                    PurchaseOrderByCustomer: headerRef,
+                    SalesOrganization: SALES_ORG,
+                    DistributionChannel: DIST_CHANNEL,
+                    OrganizationDivision: ORG_DIVISION,
+                    SoldToParty: baslik.TXTMUSTERIKOD || "",
+                    SDDocumentReason: RETURN_REASON,
+                    TransactionCurrency: CURRENCY,
+                    CustomerPaymentTerms: baslik.BYTODEMETIP || "",
+                    _Item: {
+                        ItemType: items,
+                    },
+                },
+            },
+        };
+    }
+
+    const items = detayList.map((d: any) => mapDetayToSalesItem(d, headerRef));
 
     return {
         Header: {
             HeaderType: {
+                SalesOrderType: SALES_ORDER_TYPE,
                 PurchaseOrderByCustomer: headerRef,
                 SalesOrganization: SALES_ORG,
                 DistributionChannel: DIST_CHANNEL,
@@ -62,7 +104,6 @@ function mapBaslikToSalesRequest(baslik: any): any {
                 SoldToParty: baslik.TXTMUSTERIKOD || "",
                 ShipToParty: baslik.TXTMUSTERIKOD || "",
                 TransactionCurrency: CURRENCY,
-                OrderReason: isReturn ? RETURN_ORDER_REASON : "",
                 CustomerPaymentTerms: baslik.BYTODEMETIP || "",
                 _Item: {
                     ItemType: items,
