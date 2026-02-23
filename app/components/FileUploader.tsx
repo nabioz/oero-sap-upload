@@ -75,7 +75,7 @@ export function FileUploader({ onFilesSelected, disabled }: FileUploaderProps) {
                         {isDragging ? "Drop files here" : "Click or drag files to upload"}
                     </h3>
                     <p className="text-sm text-slate-500">
-                        Supports XML files (TAHSILAT, etc.)
+                        Supports XML files (Tahsilat, Fatura, Iade)
                     </p>
                 </div>
             </div>

@@ -1,0 +1,75 @@
+{
+    "JournalEntryBulkCreateRequest": {
+        "JournalEntryCreateRequest": [
+            {
+                "JournalEntry": {
+                    "OriginalReferenceDocumentType": "BKPFF",
+                    "OriginalReferenceDocument": "",
+                    "OriginalReferenceDocumentLogicalSystem": "",
+                    "BusinessTransactionType": "",
+                    "AccountingDocumentType": "CT",
+                    "DocumentHeaderText": "Başlık Efes Çek Tahsilat",
+                    "CreatedByUser": "CB9980000015",
+                    "CompanyCode": "1000",
+                    "DocumentDate": "2025-12-17",
+                    "PostingDate": "2025-12-17",
+                    "TaxDeterminationDate": "",
+                    "Item": {
+                        "ReferenceDocumentItem": "",
+                        "ItemGroup": "",
+                        "CompanyCode": "1000",
+                        "GLAccount": "1010101103",
+                        "AmountInTransactionCurrency": {
+                            "currencyCode": "TRY",
+                            "value": "80000.00"
+                        },
+                        "AmountInCompanyCodeCurrency": {
+                            "currencyCode": "TRY",
+                            "value": "80000.00"
+                        },
+                        "DebitCreditCode": "",
+                        "DocumentItemText": "Efes Çek Tahsilat açıklama",
+                        "AssignmentReference": "",
+                        "Tax": {
+                            "TaxCode": ""
+                        },
+                        "AccountAssignment": {
+                            "AccountAssignmentType": "",
+                            "ProfitCenter": "",
+                            "Segment": "",
+                            "SalesOrder": "",
+                            "SalesOrderItem": ""
+                        },
+                        "ProfitabilitySupplement": {
+                            "Customer": "",
+                            "CustomerCountry": ""
+                        }
+                    },
+                    "DebtorItem": {
+                        "ReferenceDocumentItem": "1",
+                        "Debtor": "20000000",
+                        "AmountInTransactionCurrency": {
+                            "currencyCode": "TRY",
+                            "value": "-80000"
+                        },
+                        "AmountInCompanyCodeCurrency": {
+                            "currencyCode": "TRY",
+                            "value": "-80000"
+                        },
+                        "DebitCreditCode": "H",
+                        "DocumentItemText": "Efes Çek Tahsilat",
+						"PaymentMethod":"",
+                        "Reference1IDByBusinessPartner": "",
+                        "Reference2IDByBusinessPartner": "",
+                        "Reference3IDByBusinessPartner": "",
+                        "OneTimeCustomerDetails": {
+                            "Name": "",
+                            "CityName": "",
+                            "Country": ""
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}

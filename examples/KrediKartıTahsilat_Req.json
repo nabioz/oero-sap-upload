@@ -1,0 +1,75 @@
+{
+  "JournalEntryBulkCreateRequest": {
+    "JournalEntryCreateRequest": [
+      {
+        "JournalEntry": {
+          "OriginalReferenceDocumentType": "BKPFF",
+          "OriginalReferenceDocument": "",
+          "OriginalReferenceDocumentLogicalSystem": "",
+          "BusinessTransactionType": "",
+          "AccountingDocumentType": "KT",
+          "DocumentHeaderText": "Tahsilat",
+          "CreatedByUser": "CB9980000015",
+          "CompanyCode": "1000",
+          "DocumentDate": "2025-12-10",
+          "PostingDate": "2025-12-10",
+          "TaxDeterminationDate": "",
+          "Item": {
+            "ReferenceDocumentItem": "",
+            "ItemGroup": "",
+            "CompanyCode": "1000",
+            "GLAccount": "1080101004",
+            "AmountInTransactionCurrency": {
+              "currencyCode": "TRY",
+              "value": "15000.00"
+            },
+            "AmountInCompanyCodeCurrency": {
+              "currencyCode": "TRY",
+              "value": "15000.00"
+            },
+            "DebitCreditCode": "",
+            "DocumentItemText": "POSTMAN",
+            "AssignmentReference": "",
+            "Tax": {
+              "TaxCode": ""
+            },
+            "AccountAssignment": {
+              "AccountAssignmentType": "",
+              "ProfitCenter": "",
+              "Segment": "",
+              "SalesOrder": "",
+              "SalesOrderItem": ""
+            },
+            "ProfitabilitySupplement": {
+              "Customer": "",
+              "CustomerCountry": ""
+            }
+          },
+          "DebtorItem": {
+            "ReferenceDocumentItem": "1",
+            "Debtor": "20000000",
+            "AmountInTransactionCurrency": {
+              "currencyCode": "TRY",
+              "value": "-15000"
+            },
+            "AmountInCompanyCodeCurrency": {
+              "currencyCode": "TRY",
+              "value": "-15000"
+            },
+            "DebitCreditCode": "H",
+            "DocumentItemText": "Nakit Tahsilat",
+			"PaymentMethod":"",
+            "Reference1IDByBusinessPartner": "",
+            "Reference2IDByBusinessPartner": "",
+            "Reference3IDByBusinessPartner": "",
+            "OneTimeCustomerDetails": {
+              "Name": "",
+              "CityName": "",
+              "Country": ""
+            }
+          }
+        }
+      }
+    ]
+  }
+}

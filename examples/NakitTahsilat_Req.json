@@ -1,0 +1,74 @@
+{
+  "JournalEntryBulkCreateRequest": {
+    "JournalEntryCreateRequest": [
+      {
+        "JournalEntry": {
+          "OriginalReferenceDocumentType": "BKPFF",
+          "OriginalReferenceDocument": "",
+          "OriginalReferenceDocumentLogicalSystem": "",
+          "BusinessTransactionType": "",
+          "AccountingDocumentType": "NT",
+          "DocumentHeaderText": "Başlık Nakit Tahsilat",
+          "CreatedByUser": "CB9980000015",
+          "CompanyCode": "1000",
+          "DocumentDate": "2025-12-17",
+          "PostingDate": "2025-12-17",
+          "TaxDeterminationDate": "",
+          "Item": {
+            "ReferenceDocumentItem": "",
+            "ItemGroup": "",
+            "CompanyCode": "1000",
+            "GLAccount": "1000101007",
+            "AmountInTransactionCurrency": {
+              "currencyCode": "TRY",
+              "value": "50000.00"
+            },
+            "AmountInCompanyCodeCurrency": {
+              "currencyCode": "TRY",
+              "value": "50000.00"
+            },
+            "DebitCreditCode": "",
+            "DocumentItemText": "Nakit Tahsilat açıklama",
+            "AssignmentReference": "",
+            "Tax": {
+              "TaxCode": ""
+            },
+            "AccountAssignment": {
+              "AccountAssignmentType": "",
+              "ProfitCenter": "",
+              "Segment": "",
+              "SalesOrder": "",
+              "SalesOrderItem": ""
+            },
+            "ProfitabilitySupplement": {
+              "Customer": "",
+              "CustomerCountry": ""
+            }
+          },
+          "DebtorItem": {
+            "ReferenceDocumentItem": "1",
+            "Debtor": "20000000",
+            "AmountInTransactionCurrency": {
+              "currencyCode": "TRY",
+              "value": "-50000"
+            },
+            "AmountInCompanyCodeCurrency": {
+              "currencyCode": "TRY",
+              "value": "-50000"
+            },
+            "DebitCreditCode": "H",
+            "DocumentItemText": "kalem Nakit Tahsilat",
+            "Reference1IDByBusinessPartner": "",
+            "Reference2IDByBusinessPartner": "",
+            "Reference3IDByBusinessPartner": "",
+            "OneTimeCustomerDetails": {
+              "Name": "",
+              "CityName": "",
+              "Country": ""
+            }
+          }
+        }
+      }
+    ]
+  }
+}
