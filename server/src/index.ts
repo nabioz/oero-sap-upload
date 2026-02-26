@@ -6,7 +6,11 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { processXmlRoute } from './routes/process-xml';
+import { scanXmlRoute } from './routes/scan-xml';
+import { processInvoiceRoute } from './routes/process-invoice';
+import { processTahsilatRoute } from './routes/process-tahsilat';
 import { authMiddleware } from './middleware/auth';
+import { startCacheCleanup } from './lib/session-cache';
 import type { AuthUser } from '../../shared/types';
 
 const app = new Hono<{ Variables: { user: AuthUser } }>();
@@ -19,9 +23,15 @@ app.use('/api/*', cors({
 }));
 
 app.use('/api/process-xml/*', authMiddleware);
+app.use('/api/scan-xml/*', authMiddleware);
+app.use('/api/process-invoice/*', authMiddleware);
+app.use('/api/process-tahsilat/*', authMiddleware);
 app.use('/api/me/*', authMiddleware);
 
 app.route('/api/process-xml', processXmlRoute);
+app.route('/api/scan-xml', scanXmlRoute);
+app.route('/api/process-invoice', processInvoiceRoute);
+app.route('/api/process-tahsilat', processTahsilatRoute);
 
 app.get('/api/me', (c) => {
     const user = c.get('user');
@@ -29,6 +39,8 @@ app.get('/api/me', (c) => {
 });
 
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
+
+startCacheCleanup();
 
 const port = parseInt(process.env.PORT || '3001', 10);
 console.log(`Hono server running on http://localhost:${port}`);

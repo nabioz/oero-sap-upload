@@ -42,8 +42,8 @@ export const authMiddleware = createMiddleware<{
         });
 
         await next();
-    } catch (err: any) {
-        console.error('Auth error:', err.message);
+    } catch (err: unknown) {
+        console.error('Auth error:', err instanceof Error ? err.message : String(err));
         return c.json({ error: 'Invalid or expired token' }, 401);
     }
 });

@@ -1,11 +1,13 @@
 // Maps TAHSILATLAR XML to SAP JournalEntryBulkCreateRequest JSON.
-// Differentiates by BYTTIP: 0=Nakit (Cash), 2=Çek (Cheque), 6=Kredi Kartı (Credit Card).
+// Differentiates by BYTTIP: 0=Nakit (Cash), 2=Cek (Cheque), 6=Kredi Karti (Credit Card).
+
+import type { TahsilatXmlItem, ParsedTahsilatXml, JournalEntryPayload, JournalEntryBulkRequestPayload } from '../../types';
 
 // Type-specific config keyed by BYTTIP
 const TYPE_CONFIG: Record<number, { docType: string; glAccount: string; label: string }> = {
-    0: { docType: "NT", glAccount: "1000101007", label: "Nakit Tahsilat" },      // Efes Pls Tahsilat Kasası
-    2: { docType: "CT", glAccount: "1010101001", label: "Çek Tahsilat" },        // Portföydeki Çekler TL
-    6: { docType: "KT", glAccount: "",           label: "Kredi Kartı Tahsilat" }, // GL resolved per bank via TXTBANKA
+    0: { docType: "NT", glAccount: "1000101007", label: "Nakit Tahsilat" },      // Efes Pls Tahsilat Kasasi
+    2: { docType: "CT", glAccount: "1010101001", label: "Cek Tahsilat" },        // Porfoydeki Cekler TL
+    6: { docType: "KT", glAccount: "",           label: "Kredi Karti Tahsilat" }, // GL resolved per bank via TXTBANKA
 };
 
 const SUPPORTED_TYPES = Object.keys(TYPE_CONFIG).join(', ');
@@ -13,18 +15,18 @@ const SUPPORTED_TYPES = Object.keys(TYPE_CONFIG).join(', ');
 // Credit card GL accounts mapped by bank name (TXTBANKA field)
 // Normalized to lowercase for matching
 const KK_BANK_GL: Record<string, string> = {
-    "teb":        "1080101001", // Teb Kartı Tahsil Hes
-    "iş bank":    "1080101002", // T İş Bank K Kartı Tahsil Hes
+    "teb":        "1080101001", // Teb Karti Tahsil Hes
+    "iş bank":    "1080101002", // T Is Bank K Karti Tahsil Hes
     "is bank":    "1080101002",
     "t iş bank":  "1080101002",
     "t is bank":  "1080101002",
     "işbankası":   "1080101002",
-    "yakındoğu":  "1080101004", // Y Doğu Bank K Kartı Hesabı
+    "yakındoğu":  "1080101004", // Y Dogu Bank K Karti Hesabi
     "yakindogu":  "1080101004",
     "y doğu":     "1080101004",
     "y.doğu":     "1080101004",
-    "novabank":   "1080101004", // Novabank → Y Doğu (same group)
-    "garanti":    "1080101006", // Garanti Bankası K Kartı Hesabı
+    "novabank":   "1080101004", // Novabank -> Y Dogu (same group)
+    "garanti":    "1080101006", // Garanti Bankasi K Karti Hesabi
 };
 
 function resolveKkGlAccount(txtBanka: string): string {
@@ -48,12 +50,12 @@ function formatDate(dateStr: string): string {
     return dateStr;
 }
 
-function mapTahsilatToJournalEntry(tahsilatItem: any) {
+function mapTahsilatToJournalEntry(tahsilatItem: TahsilatXmlItem): JournalEntryPayload {
     const COMPANY_CODE = process.env.SAP_COMPANY_CODE || "1000";
     const USER_ID = process.env.SAP_USER_ID || "CB9980000015";
     const CURRENCY = "TRY";
 
-    const byttip = parseInt(tahsilatItem.BYTTIP || "0", 10);
+    const byttip = parseInt(String(tahsilatItem.BYTTIP ?? "0"), 10);
     const config = TYPE_CONFIG[byttip];
     if (!config) {
         throw new Error(`Unsupported BYTTIP: ${byttip}. Supported types: ${SUPPORTED_TYPES}`);
@@ -61,18 +63,18 @@ function mapTahsilatToJournalEntry(tahsilatItem: any) {
 
     // For credit card (BYTTIP=6), resolve GL account from TXTBANKA
     const glAccount = byttip === 6
-        ? resolveKkGlAccount(tahsilatItem.TXTBANKA)
+        ? resolveKkGlAccount(String(tahsilatItem.TXTBANKA ?? ""))
         : config.glAccount;
 
-    const amount = parseFloat(tahsilatItem.DBLTUTAR || "0").toFixed(2);
-    const docDate = formatDate(tahsilatItem.TRHISLEMTARIHI);
-    const postingDate = formatDate(tahsilatItem.TRHODEMETARIHI) || docDate;
+    const amount = parseFloat(String(tahsilatItem.DBLTUTAR ?? "0")).toFixed(2);
+    const docDate = formatDate(String(tahsilatItem.TRHISLEMTARIHI ?? ""));
+    const postingDate = formatDate(String(tahsilatItem.TRHODEMETARIHI ?? "")) || docDate;
 
     // TODO: TXTMUSTERIKOD needs a mapping table to SAP Debtor codes.
     // Currently hardcoded to '10000000' — example requests show '20000000'.
     const customerCode = '10000000';
-    const description = tahsilatItem.TXTACIKLAMA || "";
-    const receiptNo = tahsilatItem.TXTMAKBUZNO || "";
+    const description = String(tahsilatItem.TXTACIKLAMA ?? "");
+    const receiptNo = String(tahsilatItem.TXTMAKBUZNO ?? "");
 
     return {
         JournalEntry: {
@@ -145,8 +147,8 @@ function mapTahsilatToJournalEntry(tahsilatItem: any) {
     };
 }
 
-export function mapTahsilatXmlToBulkRequest(parsedXml: any) {
-    const tahsilatList = Array.isArray(parsedXml.TAHSILATLAR.TAHSILAT)
+export function mapTahsilatXmlToBulkRequest(parsedXml: ParsedTahsilatXml): JournalEntryBulkRequestPayload {
+    const tahsilatList: TahsilatXmlItem[] = Array.isArray(parsedXml.TAHSILATLAR.TAHSILAT)
         ? parsedXml.TAHSILATLAR.TAHSILAT
         : [parsedXml.TAHSILATLAR.TAHSILAT];
 

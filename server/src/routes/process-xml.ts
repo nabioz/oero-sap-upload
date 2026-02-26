@@ -4,10 +4,11 @@ import { mapTahsilatXmlToBulkRequest } from '../lib/mappers/tahsilat-mapper';
 import { mapFaturaXmlToSalesRequests } from '../lib/mappers/sales-mapper';
 import { sendToSAPJournalEndpoint, sendToSAPSalesEndpoint, getSalesEndpointUrl } from '../lib/sap-client';
 import type { ProcessResult } from '../../../shared/types';
+import type { ParsedFaturaXml, ParsedTahsilatXml } from '../types';
 
 const processXmlRoute = new Hono();
 
-async function processTahsilat(parsedXml: any): Promise<ProcessResult> {
+async function processTahsilat(parsedXml: ParsedTahsilatXml): Promise<ProcessResult> {
     const sapPayload = mapTahsilatXmlToBulkRequest(parsedXml);
     const sapResult = await sendToSAPJournalEndpoint(sapPayload);
 
@@ -17,11 +18,11 @@ async function processTahsilat(parsedXml: any): Promise<ProcessResult> {
     return { success: true, message: "Successfully sent to SAP (Tahsilat)", data: sapResult.data };
 }
 
-async function processFatura(parsedXml: any): Promise<ProcessResult> {
+async function processFatura(parsedXml: ParsedFaturaXml): Promise<ProcessResult> {
     const salesRequests = mapFaturaXmlToSalesRequests(parsedXml);
     const endpointUrl = getSalesEndpointUrl();
 
-    const results: { ref: string; success: boolean; error?: string; data?: any }[] = [];
+    const results: { ref: string; success: boolean; error?: string; data?: unknown }[] = [];
 
     for (const request of salesRequests) {
         const ref = request.Header.HeaderType.PurchaseOrderByCustomer;
@@ -66,13 +67,13 @@ processXmlRoute.post('/', async (c) => {
         const text = await file.text();
         const parsedXml = parseXML(text);
 
-        if (parsedXml?.TAHSILATLAR) {
-            const result = await processTahsilat(parsedXml);
+        if (parsedXml.TAHSILATLAR) {
+            const result = await processTahsilat(parsedXml as ParsedTahsilatXml);
             return c.json(result, result.success ? 200 : 422);
         }
 
-        if (parsedXml?.FATURALAR) {
-            const result = await processFatura(parsedXml);
+        if (parsedXml.FATURALAR) {
+            const result = await processFatura(parsedXml as ParsedFaturaXml);
             return c.json(result, result.success ? 200 : 422);
         }
 
@@ -81,11 +82,11 @@ processXmlRoute.post('/', async (c) => {
             message: "Invalid XML format: Expected TAHSILATLAR or FATURALAR root element",
         } satisfies ProcessResult, 400);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Processing Error:", error);
         return c.json({
             success: false,
-            message: `Processing failed: ${error.message}`,
+            message: `Processing failed: ${error instanceof Error ? error.message : String(error)}`,
         } satisfies ProcessResult, 500);
     }
 });
